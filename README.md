@@ -5,13 +5,17 @@ widget's number to open it without reaching for the mouse.
 
 ![Bar Hints labelling every openable widget on the Omarchy bar](preview.png)
 
+![Hints sitting under each bar icon, close up](hints-zoomed.png)
+
 ## Install
 
 ```sh
 omarchy plugin add https://github.com/hanssound/omarchy-bar-hints.git --enable
 ```
 
-Add the binding to `~/.config/hypr/bindings.lua`:
+Add the binding to `~/.config/hypr/bindings.lua`. `Super+B` is unbound in stock
+Omarchy 4, so it does not clash with a default (the stock browser binding is
+`Super+Shift+B`):
 
 ```lua
 o.bind("SUPER + B", "Bar icon hints",
