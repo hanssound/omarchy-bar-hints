@@ -1,0 +1,16 @@
+{
+  "schemaVersion": 1,
+  "id": "io.github.hanssound.bar-hints",
+  "name": "Bar hints",
+  "version": "1.0.0",
+  "author": "Hans",
+  "license": "MIT",
+  "description": "Keyboard hints for opening visible bar widgets",
+  "kinds": [
+    "overlay"
+  ],
+  "keepLoaded": true,
+  "entryPoints": {
+    "overlay": "BarHints.qml"
+  }
+}
