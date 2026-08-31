@@ -3,6 +3,8 @@
 Keyboard hints for the Omarchy bar. Press `Super+B`, then type a visible
 widget's number to open it without reaching for the mouse.
 
+![Bar Hints labelling every openable widget on the Omarchy bar](preview.png)
+
 ## Install
 
 ```sh
@@ -33,6 +35,11 @@ not labeled.
 - The plugin reads live stock-bar internals; custom replacement bars are not
   supported.
 - Multi-monitor filtering follows the monitor focused when the overlay opens.
+  This is implemented but has only been tested on a single display; behaviour
+  with two or more monitors, or with mixed scale factors, is unverified.
+
+Tested on Omarchy 4.0.1-1 with Hyprland on one 1920x1200 display, with the bar
+on all four edges (top, bottom, left, right).
 
 ## Remove
 
