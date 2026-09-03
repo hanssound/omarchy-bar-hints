@@ -182,7 +182,7 @@ Item {
   }
 
   function applyFilter() {
-    hints = Placement.prefixMatches(allHints, query, hintLimit)
+    hints = Placement.prefixMatches(allHints, query, hintLimit, nameLengthLimit)
     typed = ""
   }
 

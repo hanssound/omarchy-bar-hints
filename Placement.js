@@ -37,11 +37,11 @@ function safeQuery(value, maxLength) {
     : ""
 }
 
-function prefixMatches(items, query, maxItems) {
+function prefixMatches(items, query, maxItems, maxLength) {
   if (!Array.isArray(items) || items.length > maxItems) return []
-  var prefix = safeQuery(query, 80).toLowerCase()
+  var prefix = safeQuery(query, maxLength).toLowerCase()
   return items.filter(function(item) {
-    return item && typeof item.name === "string" && item.name.length <= 80
+    return item && typeof item.name === "string" && item.name.length <= maxLength
       && (!prefix || item.name.toLowerCase().indexOf(prefix) === 0)
   })
 }
@@ -62,10 +62,13 @@ if (typeof module !== "undefined") {
     assert.strictEqual(finiteNumber(Infinity), false)
     assert.strictEqual(safeId("omarchy.audio", 128), "omarchy.audio")
     assert.strictEqual(safeId("bad id", 128), "")
+    assert.strictEqual(safeId("a".repeat(129), 128), "")
     assert.strictEqual(safeName("<b>Audio</b>\npanel", "fallback", 16), "<b>Audio</b> pan")
+    assert.strictEqual(safeName("a".repeat(81), "fallback", 80).length, 80)
     assert.strictEqual(safeQuery("sp\norts", 80), "sports")
     assert.deepStrictEqual(prefixMatches([
       { name: "Sportsbar" }, { name: "Audio" }, { name: "System" }
-    ], "s", 99), [{ name: "Sportsbar" }, { name: "System" }])
+    ], "s", 99, 80), [{ name: "Sportsbar" }, { name: "System" }])
+    assert.deepStrictEqual(prefixMatches(new Array(100), "s", 99, 80), [])
   }
 }
