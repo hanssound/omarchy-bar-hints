@@ -14,87 +14,140 @@ Item {
   property var manifest: null
   property var pluginRegistry: null
   property bool opened: false
-  property string activeScreenName: ""
+  property var activeScreen: null
   property string typed: ""
+  property string query: ""
+  property var allHints: []
   property var hints: []
+  readonly property int hintLimit: 99
+  readonly property int slotLimit: 512
+  readonly property int idLengthLimit: 128
+  readonly property int nameLengthLimit: 80
+  readonly property int screenLimit: 32
+  readonly property int kindLimit: 16
   readonly property int hintDigits: Math.max(1, String(hints.length).length)
   readonly property int hintGap: 4
   readonly property string barPosition: {
-    const value = shell && shell.bar ? String(shell.bar.position || "top") : "top"
+    const value = shell && shell.bar && typeof shell.bar.position === "string"
+      ? shell.bar.position : "top"
     return ["top", "bottom", "left", "right"].indexOf(value) >= 0 ? value : "top"
   }
-  readonly property int barSize: shell && shell.bar ? Number(shell.bar.barSize) || 30 : 30
+  readonly property int barSize: {
+    const value = shell && shell.bar ? shell.bar.barSize : 30
+    return Placement.finiteNumber(value) && value > 0 && value <= 512 ? value : 30
+  }
 
-  function focusedScreenName() {
-    return Hyprland.focusedMonitor
-      ? String(Hyprland.focusedMonitor.name || "") : ""
+  function focusedScreen() {
+    const monitor = Hyprland.focusedMonitor
+    const name = monitor && typeof monitor.name === "string" ? monitor.name : ""
+    const screens = Quickshell.screens
+    if (!name || name.length > idLengthLimit || !screens
+        || screens.length < 1 || screens.length > screenLimit) return null
+
+    let match = null
+    for (let i = 0; i < screens.length; i++) {
+      const screen = screens[i]
+      if (screen && typeof screen.name === "string" && screen.name === name) {
+        if (match) return null
+        match = screen
+      }
+    }
+    return match
   }
 
   function canOpen(id) {
     const plugins = pluginRegistry && pluginRegistry.installedPlugins
     const plugin = plugins ? plugins[id] : null
     const kinds = plugin && Array.isArray(plugin.kinds) ? plugin.kinds : []
-    if (kinds.indexOf("panel") >= 0 || kinds.indexOf("overlay") >= 0
-        || kinds.indexOf("menu") >= 0) return true
-    return shell && shell.bar && typeof shell.bar.findPanelWidget === "function"
-      && shell.bar.findPanelWidget(id) !== null
+    if (kinds.length <= kindLimit) {
+      for (let i = 0; i < kinds.length; i++)
+        if (kinds[i] === "panel" || kinds[i] === "overlay" || kinds[i] === "menu")
+          return true
+    }
+    try {
+      return shell && shell.bar && typeof shell.bar.findPanelWidget === "function"
+        && shell.bar.findPanelWidget(id) !== null
+    } catch (e) {
+      return false
+    }
   }
 
   function displayName(id) {
     const plugins = pluginRegistry && pluginRegistry.installedPlugins
     const plugin = plugins ? plugins[id] : null
     const widget = plugin && plugin.barWidget ? plugin.barWidget : null
-    return String(widget && widget.displayName
-      || plugin && plugin.name || id)
+    const value = widget && typeof widget.displayName === "string"
+      ? widget.displayName
+      : plugin && typeof plugin.name === "string" ? plugin.name : id
+    return Placement.safeName(value, id, nameLengthLimit)
   }
 
   function rebuildHints() {
     const bar = shell ? shell.bar : null
-    const seen = ({})
+    const seen = []
     const next = []
-    if (!bar || bar.barHidden === true) {
+    const slots = bar && Array.isArray(bar.moduleSlots) ? bar.moduleSlots : null
+    const targetName = activeScreen && typeof activeScreen.name === "string"
+      ? activeScreen.name : ""
+    if (!bar || bar.barHidden === true || !slots || slots.length > slotLimit
+        || !targetName || typeof bar.slotScreenName !== "function") {
+      allHints = next
       hints = next
       return
     }
 
     const vertical = barPosition === "left" || barPosition === "right"
-    const slots = bar.moduleSlots || []
     for (let i = 0; i < slots.length; i++) {
       const slot = slots[i]
       const widget = slot ? slot.activeItem : null
-      const id = String(slot && slot.moduleName || "")
-      const screenName = slot && typeof bar.slotScreenName === "function"
-        ? String(bar.slotScreenName(slot) || "") : ""
-      if (!id || seen[id] || !widget || slot.visible !== true
-          || widget.visible !== true || slot.width <= 0 || slot.height <= 0
+      const id = Placement.safeId(slot ? slot.moduleName : null, idLengthLimit)
+      const width = slot ? slot.width : NaN
+      const height = slot ? slot.height : NaN
+      let screenName = ""
+      try { screenName = bar.slotScreenName(slot) } catch (e) {}
+      if (!id || seen.indexOf(id) >= 0 || !widget || slot.visible !== true
+          || widget.visible !== true || !Placement.finiteNumber(width)
+          || !Placement.finiteNumber(height) || width <= 0 || height <= 0
+          || typeof screenName !== "string" || screenName !== targetName
           || !canOpen(id)) continue
-      if (screenName && activeScreenName && screenName !== activeScreenName) continue
 
-      let point = { x: Number(slot.x) || 0, y: Number(slot.y) || 0 }
+      let point = null
       try { point = slot.mapToItem(null, 0, 0) } catch (e) {}
-      seen[id] = true
+      if (!point || !Placement.finiteNumber(point.x)
+          || !Placement.finiteNumber(point.y)) continue
+      const axis = vertical ? point.y + height / 2 : point.x + width / 2
+      if (!Placement.finiteNumber(axis)) continue
+
+      seen.push(id)
       next.push({
         id: id,
         name: displayName(id),
-        axis: vertical
-          ? (Number(point.y) || 0) + Number(slot.height) / 2
-          : (Number(point.x) || 0) + Number(slot.width) / 2
+        axis: axis
       })
+      if (next.length >= hintLimit) break
     }
     next.sort(function(a, b) { return a.axis - b.axis })
-    hints = next
+    allHints = next
+    applyFilter()
   }
 
   function open() {
-    activeScreenName = focusedScreenName()
+    close()
+    activeScreen = focusedScreen()
+    if (!activeScreen) return
     typed = ""
     rebuildHints()
     opened = hints.length > 0
+    if (!opened) activeScreen = null
   }
 
   function close() {
     opened = false
     typed = ""
+    query = ""
+    allHints = []
+    hints = []
+    activeScreen = null
   }
 
   function dismiss() {
@@ -112,7 +165,11 @@ Item {
       typed = ""
       return
     }
-    const id = hints[index].id
+    const id = Placement.safeId(hints[index].id, idLengthLimit)
+    if (!id) {
+      close()
+      return
+    }
     dismiss()
     Qt.callLater(function() {
       if (shell && typeof shell.summon === "function") shell.summon(id, "{}")
@@ -124,17 +181,40 @@ Item {
     if (typed.length >= hintDigits) activate(parseInt(typed, 10) - 1)
   }
 
-  Variants {
-    model: Quickshell.screens
+  function applyFilter() {
+    hints = Placement.prefixMatches(allHints, query, hintLimit)
+    typed = ""
+  }
 
-    PanelWindow {
+  function acceptText(text) {
+    const chunk = Placement.safeQuery(text, nameLengthLimit)
+    if (!chunk) return false
+    const next = Placement.safeQuery(query + chunk, nameLengthLimit)
+    if (next === query) return false
+    query = next
+    applyFilter()
+    return true
+  }
+
+  function backspace() {
+    if (typed) {
+      typed = typed.slice(0, -1)
+    } else if (query) {
+      query = query.slice(0, -1)
+      applyFilter()
+    }
+  }
+
+  Connections {
+    target: Quickshell
+    function onScreensChanged() { if (root.opened) root.dismiss() }
+  }
+
+  PanelWindow {
       id: overlay
-      required property var modelData
 
-      screen: modelData
-      visible: root.opened
-        && (!root.activeScreenName
-          || String(modelData.name || "") === root.activeScreenName)
+      screen: root.activeScreen
+      visible: root.opened && root.activeScreen !== null
       anchors { top: true; right: true; bottom: true; left: true }
       color: "transparent"
       exclusionMode: ExclusionMode.Ignore
@@ -161,10 +241,11 @@ Item {
           if (event.key === Qt.Key_Escape) {
             root.dismiss()
           } else if (event.key === Qt.Key_Backspace) {
-            root.typed = root.typed.slice(0, -1)
+            root.backspace()
           } else if (event.key >= Qt.Key_0 && event.key <= Qt.Key_9) {
             root.acceptDigit(String(event.key - Qt.Key_0))
-          } else {
+          } else if (event.modifiers & (Qt.ControlModifier | Qt.AltModifier
+                     | Qt.MetaModifier) || !root.acceptText(event.text)) {
             return
           }
           event.accepted = true
@@ -237,6 +318,7 @@ Item {
                 anchors.fill: parent
                 anchors.margins: 8
                 text: modelData.name
+                textFormat: Text.PlainText
                 color: Color.menu.text
                 font.family: Style.font.family
                 font.pixelSize: 12
@@ -257,6 +339,5 @@ Item {
           }
         }
       }
-    }
   }
 }
