@@ -32,7 +32,8 @@ o.bind("SUPER + B", "Bar icon hints",
 | Escape or background click | Dismiss |
 
 Hover a hint to show the widget name. Hidden and non-interactive widgets are
-not labeled.
+not labeled. While filtering, a box shows the current query and remaining
+match count.
 
 ## Requirements and limitations
 

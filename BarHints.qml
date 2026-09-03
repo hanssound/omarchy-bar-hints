@@ -251,6 +251,51 @@ Item {
           event.accepted = true
         }
 
+        Rectangle {
+          id: filterBox
+
+          x: root.barPosition === "left"
+            ? root.barSize + 12
+            : root.barPosition === "right"
+              ? overlay.width - root.barSize - width - 12
+              : (overlay.width - width) / 2
+          y: root.barPosition === "top"
+            ? root.barSize + 12
+            : root.barPosition === "bottom"
+              ? overlay.height - root.barSize - height - 12
+              : (overlay.height - height) / 2
+          z: 1
+          width: Math.max(180, Math.min(320, filterLabel.implicitWidth + 24))
+          height: 40
+          visible: root.query.length > 0
+          radius: 8
+          color: Qt.rgba(Color.menu.background.r,
+                         Color.menu.background.g,
+                         Color.menu.background.b, 0.98)
+          border.color: Color.menu.selectedText
+          border.width: 1
+          Accessible.role: Accessible.StaticText
+          Accessible.name: filterLabel.text
+
+          Text {
+            id: filterLabel
+
+            anchors.fill: parent
+            anchors.margins: 12
+            text: "Filter: " + root.query + " · "
+              + (root.hints.length === 0 ? "No matches"
+                : root.hints.length + (root.hints.length === 1 ? " match" : " matches"))
+            textFormat: Text.PlainText
+            color: Color.menu.text
+            font.family: Style.font.family
+            font.pixelSize: 13
+            font.bold: true
+            elide: Text.ElideRight
+            horizontalAlignment: Text.AlignHCenter
+            verticalAlignment: Text.AlignVCenter
+          }
+        }
+
         Repeater {
           model: root.hints
 
