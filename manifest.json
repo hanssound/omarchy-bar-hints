@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "id": "io.github.hanssound.bar-hints",
   "name": "Bar hints",
-  "version": "1.2.0",
+  "version": "1.2.1",
   "author": "Hans",
   "license": "MIT",
   "description": "Keyboard hints for opening visible bar widgets",

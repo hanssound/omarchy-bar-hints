@@ -27,6 +27,9 @@ Item {
   readonly property int kindLimit: 16
   readonly property int hintDigits: Math.max(1, String(hints.length).length)
   readonly property int hintGap: 4
+  readonly property int hintWidth: 26
+  readonly property int hintHeight: 24
+  readonly property int filterGap: 12
   readonly property string barPosition: {
     const value = shell && shell.bar && typeof shell.bar.position === "string"
       ? shell.bar.position : "top"
@@ -254,16 +257,13 @@ Item {
         Rectangle {
           id: filterBox
 
-          x: root.barPosition === "left"
-            ? root.barSize + 12
-            : root.barPosition === "right"
-              ? overlay.width - root.barSize - width - 12
-              : (overlay.width - width) / 2
-          y: root.barPosition === "top"
-            ? root.barSize + 12
-            : root.barPosition === "bottom"
-              ? overlay.height - root.barSize - height - 12
-              : (overlay.height - height) / 2
+          readonly property point filterPoint: Placement.filterPoint(
+            root.barPosition, overlay.width, overlay.height, root.barSize,
+            root.hintGap, root.hintWidth, root.hintHeight, width, height,
+            root.filterGap)
+
+          x: filterPoint.x
+          y: filterPoint.y
           z: 1
           width: Math.max(180, Math.min(320, filterLabel.implicitWidth + 24))
           height: 40
@@ -311,8 +311,8 @@ Item {
               root.barSize, root.hintGap, width, height)
             x: badgePoint.x
             y: badgePoint.y
-            width: 26
-            height: 24
+            width: root.hintWidth
+            height: root.hintHeight
             Accessible.role: Accessible.Button
             Accessible.name: "Open " + modelData.name + " with " + label
 

@@ -11,6 +11,20 @@ function badgePoint(position, axis, overlayWidth, overlayHeight, barSize, gap, w
   }
 }
 
+function filterPoint(position, overlayWidth, overlayHeight, barSize, hintGap,
+                     hintWidth, hintHeight, width, height, gap) {
+  var x = position === "left" ? barSize + hintGap + hintWidth + gap
+    : position === "right" ? overlayWidth - barSize - hintGap - hintWidth - gap - width
+    : (overlayWidth - width) / 2
+  var y = position === "top" ? barSize + hintGap + hintHeight + gap
+    : position === "bottom" ? overlayHeight - barSize - hintGap - hintHeight - gap - height
+    : (overlayHeight - height) / 2
+  return {
+    x: Math.round(Math.max(0, Math.min(overlayWidth - width, x))),
+    y: Math.round(Math.max(0, Math.min(overlayHeight - height, y)))
+  }
+}
+
 function finiteNumber(value) {
   return typeof value === "number" && isFinite(value)
 }
@@ -59,6 +73,7 @@ function prefixMatches(items, query, maxItems, maxLength) {
 
 if (typeof module !== "undefined") {
   module.exports = badgePoint
+  module.exports.filterPoint = filterPoint
   module.exports.finiteNumber = finiteNumber
   module.exports.safeId = safeId
   module.exports.safeName = safeName
@@ -70,6 +85,10 @@ if (typeof module !== "undefined") {
     assert.deepStrictEqual(badgePoint("bottom", 100, 800, 600, 30, 4, 26, 24), { x: 87, y: 542 })
     assert.deepStrictEqual(badgePoint("left", 100, 800, 600, 28, 4, 26, 24), { x: 32, y: 88 })
     assert.deepStrictEqual(badgePoint("right", 100, 800, 600, 28, 4, 26, 24), { x: 742, y: 88 })
+    assert.deepStrictEqual(filterPoint("top", 800, 600, 30, 4, 26, 24, 200, 40, 12), { x: 300, y: 70 })
+    assert.deepStrictEqual(filterPoint("bottom", 800, 600, 30, 4, 26, 24, 200, 40, 12), { x: 300, y: 490 })
+    assert.deepStrictEqual(filterPoint("left", 800, 600, 30, 4, 26, 24, 200, 40, 12), { x: 72, y: 280 })
+    assert.deepStrictEqual(filterPoint("right", 800, 600, 30, 4, 26, 24, 200, 40, 12), { x: 528, y: 280 })
     assert.strictEqual(finiteNumber(Infinity), false)
     assert.strictEqual(safeId("omarchy.audio", 128), "omarchy.audio")
     assert.strictEqual(safeId("bad id", 128), "")
