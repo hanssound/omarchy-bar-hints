@@ -37,12 +37,23 @@ function safeQuery(value, maxLength) {
     : ""
 }
 
+function searchText(value) {
+  return value.replace(/([A-Z]+)([A-Z][a-z])/g, "$1 $2")
+    .replace(/([a-z0-9])([A-Z])/g, "$1 $2")
+    .replace(/[-_.:/\\]+/g, " ")
+    .replace(/\s+/g, " ")
+    .trim()
+    .toLowerCase()
+}
+
 function prefixMatches(items, query, maxItems, maxLength) {
   if (!Array.isArray(items) || items.length > maxItems) return []
-  var prefix = safeQuery(query, maxLength).toLowerCase()
+  var prefix = searchText(safeQuery(query, maxLength))
   return items.filter(function(item) {
-    return item && typeof item.name === "string" && item.name.length <= maxLength
-      && (!prefix || item.name.toLowerCase().indexOf(prefix) === 0)
+    if (!item || typeof item.name !== "string" || item.name.length > maxLength)
+      return false
+    var name = searchText(item.name)
+    return !prefix || name.indexOf(prefix) === 0 || name.indexOf(" " + prefix) >= 0
   })
 }
 
@@ -66,9 +77,15 @@ if (typeof module !== "undefined") {
     assert.strictEqual(safeName("<b>Audio</b>\npanel", "fallback", 16), "<b>Audio</b> pan")
     assert.strictEqual(safeName("a".repeat(81), "fallback", 80).length, 80)
     assert.strictEqual(safeQuery("sp\norts", 80), "sports")
-    assert.deepStrictEqual(prefixMatches([
-      { name: "Sportsbar" }, { name: "Audio" }, { name: "System" }
-    ], "s", 99, 80), [{ name: "Sportsbar" }, { name: "System" }])
+    var items = [
+      { name: "Sportsbar" }, { name: "Audio" }, { name: "System" },
+      { name: "Downloads" }, { name: "OmaProton VPN" }
+    ]
+    assert.deepStrictEqual(prefixMatches(items, "s", 99, 80), [items[0], items[2]])
+    assert.deepStrictEqual(prefixMatches(items, "proton", 99, 80), [items[4]])
+    assert.deepStrictEqual(prefixMatches(items, "vpn", 99, 80), [items[4]])
+    assert.deepStrictEqual(prefixMatches(items, "proton v", 99, 80), [items[4]])
+    assert.deepStrictEqual(prefixMatches(items, "ton", 99, 80), [])
     assert.deepStrictEqual(prefixMatches(new Array(100), "s", 99, 80), [])
   }
 }

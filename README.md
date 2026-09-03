@@ -1,7 +1,7 @@
 # Bar Hints
 
 Keyboard hints for the Omarchy bar. Press `Super+B`, optionally type the start
-of a widget name to filter the hints, then type its number to open it.
+of any word in a widget name to filter the hints, then type its number to open it.
 
 ![Bar Hints labelling every openable widget on the Omarchy bar](preview.png)
 
@@ -26,7 +26,7 @@ o.bind("SUPER + B", "Bar icon hints",
 
 | Input | Action |
 |---|---|
-| text | Filter widget names by prefix (case-insensitive) |
+| text | Filter by any word prefix, including CamelCase (case-insensitive) |
 | number | Open the matching visible bar widget |
 | Backspace | Remove the last typed digit, then the last filter character |
 | Escape or background click | Dismiss |
